@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Searchbar from './Searchbar/Searchbar';
 import ImageGallery from './ImageGallery/ImageGallery';
 import Button from './Button/Button';
@@ -8,22 +8,20 @@ import Modal from './Modal/Modal';
 const App = () => {
   const [query, setQuery] = useState('');
   const [images, setImages] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
   const [largeImageURL, setLargeImageURL] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [hasMoreImages, setHasMoreImages] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const [page, setPage] = useState(1); 
+  const [page, setPage] = useState(1);
 
   const handleSearchSubmit = (searchQuery) => {
     setQuery(searchQuery);
     setImages([]);
-    setCurrentPage(1);
     setHasMoreImages(true);
-    setPage(1); 
+    setPage(1);
   };
 
-  const fetchImages = async () => {
+  const fetchImages = useCallback(async () => {
     setIsLoading(true);
 
     try {
@@ -37,21 +35,27 @@ const App = () => {
       const { hits, totalHits } = data;
 
       setImages((prevImages) => [...prevImages, ...hits]);
-      setCurrentPage((prevPage) => prevPage + 1);
       setHasMoreImages(page < Math.ceil(totalHits / perPage));
     } catch (error) {
       console.error('Error fetching images:', error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [query, page, setIsLoading]);
 
   useEffect(() => {
     if (!query) return;
 
-    fetchImages();
+    const fetchImagesFromEffect = async () => {
+      try {
+        await fetchImages();
+      } catch (error) {
+        console.error('Error in useEffect:', error);
+      }
+    };
 
-  }, [query, page]); 
+    fetchImagesFromEffect();
+  }, [query, page, fetchImages]);
 
   const handleLoadMore = () => {
     if (!isLoading && hasMoreImages) {
